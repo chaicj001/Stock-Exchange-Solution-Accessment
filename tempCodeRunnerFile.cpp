@@ -1,20 +1,78 @@
-        for (csv::CSVRow& row : reader) {
-            string symbol = row[0].get<>();
-            string name = row[1].get<>();
-            int quantity = row[2].get<int>();
-            double price = row[3].get<double>();
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <sstream>
 
-            stockList.push_back(Stock{symbol, name, quantity, price});
-        }
+using namespace std;
 
-        for (const Stock& stock : stockList) {
-            cout << "Symbol: " << stock.symbol << ", Name: " << stock.name
-                    << ", Quantity: " << stock.quantity << ", Price: $" << stock.price << endl;
-        }
-            inputFile.close();
-        }
-        void printStock(){
-            for (int i = 0; i < stockList.size(); i++) {
-                cout << stockList[i].symbol << " " << stockList[i].name << " " << stockList[i].quantity << " " << stockList[i].price << endl;
+class Stock {
+public:
+    string symbol;
+    string name;
+    long long marketCap;
+    double lastSale;
+
+    Stock(const string& s, const string& n, long long m, double l)
+        : symbol(s), name(n), marketCap(m), lastSale(l) {}
+};
+
+class ReadStock {
+public:
+    vector<Stock> stockList;
+
+    void customCsvParser(const string& line, vector<string>& tokens) {
+        
+    }
+
+    long long removeCommasAndQuotes(const string& value) {
+        string result;
+        for (int i = 0; i < value.size(); i++) {
+            if (value[i] != ',' && value[i] != '"') {
+                result += value[i];
             }
         }
+        return stoll(result);
+    }
+
+    double removeDollarSign(const string& value) {
+        string result;
+        for (int i = 0; i < value.size(); i++) {
+            if (value[i] != '$') {
+                result += value[i];
+            }
+        }
+        return stod(result);
+    }
+
+    void loadcsv() {
+        ifstream inputFile("stock_info.csv"); 
+        if (!inputFile) {
+            cerr << "Failed to open the CSV file." << endl;
+            return;
+        } else {
+            cout << "Opened the CSV file." << endl;
+        }
+        string line;
+        getline(inputFile, line); // Skip the first line
+        while (getline(inputFile, line)) {
+            vector<string> tokens;
+            customCsvParser(line, tokens);
+            cout << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << tokens[3] << endl;
+        }
+        inputFile.close();
+    }
+
+    void printStock() {
+        for (int i = 0; i < stockList.size(); i++) {
+            cout << stockList[i].symbol << " " << stockList[i].name << " " << stockList[i].marketCap << " " << stockList[i].lastSale << endl;
+        }
+    }
+};
+
+int main() {
+    ReadStock stockData;
+    stockData.loadcsv();
+    stockData.printStock();
+    return 0;
+}
