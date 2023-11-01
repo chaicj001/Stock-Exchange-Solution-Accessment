@@ -80,11 +80,15 @@ public:
             cout << stockList[i].symbol << " " << stockList[i].name << " " << stockList[i].marketCap << " " << stockList[i].lastSale << endl;
         }
     }
+    vector<Stock> returnStock(){
+        return stockList;
+    }
 };
 
 int main() {
     ReadStock stockData;
     stockData.loadcsv();
     stockData.printStock();
+    vector <Stock> maindata = stockData.returnStock();
     return 0;
 }
