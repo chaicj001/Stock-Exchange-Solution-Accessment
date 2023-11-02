@@ -51,9 +51,9 @@ int main() {
 
         string message= username+":";
         string action;
-        string extramessage2;
-        string extramessage3;
-        string extramessage4;
+        string symbol;
+        string price;
+        string quantity;
 
         SOCKET clientSocket = connectToServer();
         if (clientSocket == INVALID_SOCKET) {
@@ -62,28 +62,58 @@ int main() {
         cout << "Enter your action:";
         cin >> action;
         message += action +":";
+        //switch case for action but it not possible to done in c++
+        //hence, using traditional way with if statement to check the action and give respond to user
+        if (action=="2"){
+            cout << "Sell Stock"<< endl;
+            cout << "Enter your stock you want to sell (Symbol):";
+            cin >> symbol;
+            message += symbol +":";
 
-        cout << "Enter your message2:";
-        cin >> extramessage2;
-        message += extramessage2 +":";
+            cout << "Enter your quantity:";
+            cin >> quantity;
+            message += quantity +":";
 
-        cout << "Enter your message3:";
-        cin >> extramessage3;
-        message += extramessage3 +":";
+            cout << "Enter your price:";
+            cin >> price;
+            message += price +":";
+        }
+        else if (action=="3"){
+            cout << "Buy Stock"<< endl;
+            cout << "Enter your stock you want to buy (Symbol):";
+            cin >> symbol;
+            message += symbol +":";
 
-        cout << "Enter your message4:";
-        cin >> extramessage4;
-        message += extramessage4 +":";
+            cout << "Enter your quantity:";
+            cin >> quantity;
+            message += quantity +":";
 
-        send(clientSocket, message.c_str(), message.size(), 0);
+            cout << "Enter your price:";
+            cin >> price;
+            message += price +":";     
 
-        //quit condition hear from server before quit 
-        if (extramessage == "quit") {
+        }
+        else if (action=="4"){
+            cout << "View Pending Stock"<< endl;
+        }
+        else if (action=="5"){
+            cout << "Your Holdings"<< endl;
+        }        
+        else{
+            cout <<"Action:" << action << endl;
+        }
+
+        if (action == "quit") {
+            cout << "quit function" << endl;
+            //quit condition hear from server before quit 
             listenserver(clientSocket);
             closesocket(clientSocket);
             WSACleanup();
             break;
         }
+        send(clientSocket, message.c_str(), message.size(), 0);
+
+
         listenserver(clientSocket);
         closesocket(clientSocket);
         WSACleanup();

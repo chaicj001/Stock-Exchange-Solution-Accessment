@@ -180,11 +180,11 @@ private:
             char byeMessage[1024];
             sprintf(byeMessage, "bye %s", username);
             send(clientSocket, byeMessage, strlen(byeMessage), 0);
-        } else if (strcmp(action, "viewstock") == 0) {
+        } else if (strcmp(action, "1") == 0) {
             // Send the stock data as a response
             const char* stockData = "AAPL:150:250.0, MSFT:100:300.0";
             send(clientSocket, stockData, strlen(stockData), 0);
-        } else if (strcmp(action, "buystock") == 0) {
+        } else if (strcmp(action, "2") == 0) {
             // Extract the symbol, quantity, and price
             char* nextColonPosition = strchr(nextColonPosition + 1, ':');
             if (nextColonPosition != nullptr) {
@@ -207,13 +207,13 @@ private:
                 }
             }
     } else {
-    // Process other actions as needed
-    cout << "Received from client - Username: " << username << ", Action: " << action << endl;
+        // Process other actions as needed
+        cout << "Received from client - Username: " << username << ", Action: " << action << endl;
 
-    // Send a response
-    const char* response = "Message received.";
-    send(clientSocket, response, strlen(response), 0);
-}
+        // Send a response
+        const char* response = "Message received.";
+        send(clientSocket, response, strlen(response), 0);
+    }
         } else {
             // If no colon is found, send an error response
             const char* response = "Invalid message format. Use 'username:action:symbol:quantity:price'.";
