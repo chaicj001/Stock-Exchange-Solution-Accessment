@@ -45,21 +45,46 @@ SOCKET connectToServer() {
 
 int main() {
     string username;
+    cout << "Enter your username:";
     cin >> username;
     while (true){
+
         string message= username+":";
-        string extramessage;
+        string action;
+        string extramessage2;
+        string extramessage3;
+        string extramessage4;
+
         SOCKET clientSocket = connectToServer();
         if (clientSocket == INVALID_SOCKET) {
             return 1;
         }
-        
-        cin >> extramessage;
-        message += extramessage ;
+        cout << "Enter your action:";
+        cin >> action;
+        message += action +":";
+
+        cout << "Enter your message2:";
+        cin >> extramessage2;
+        message += extramessage2 +":";
+
+        cout << "Enter your message3:";
+        cin >> extramessage3;
+        message += extramessage3 +":";
+
+        cout << "Enter your message4:";
+        cin >> extramessage4;
+        message += extramessage4 +":";
+
         send(clientSocket, message.c_str(), message.size(), 0);
+
+        //quit condition hear from server before quit 
+        if (extramessage == "quit") {
+            listenserver(clientSocket);
+            closesocket(clientSocket);
+            WSACleanup();
+            break;
+        }
         listenserver(clientSocket);
-
-
         closesocket(clientSocket);
         WSACleanup();
     }
