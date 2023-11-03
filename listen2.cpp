@@ -15,11 +15,11 @@ class Stock {
 public:
     string symbol;
     string name;
-    long long marketCap;
+    long long volume;
     double lastSale;
 
     Stock(const string& s, const string& n, long long m, double l)
-        : symbol(s), name(n), marketCap(m), lastSale(l) {}
+        : symbol(s), name(n), volume(m), lastSale(l) {}
 
     // Define the equality operator for Stock
     bool operator==(const Stock& other) const {
@@ -80,26 +80,26 @@ public:
 
             string symbol;
             string name;
-            string marketCap;
+            string volume;
             string lastSale;
 
             getline(ss, symbol, ',');
             getline(ss, name, ',');
-            getline(ss, marketCap, '$'); // Read until the before $ character
+            getline(ss, volume, '$'); // Read until the before $ character
             getline(ss, lastSale, ' ');  // Read until the before empty character
             
             //checking code 
-            //cout << symbol << " " << name << "marketCap: " << marketCap << "lastSale: " << lastSale << endl;
+            //cout << symbol << " " << name << "volume: " << volume << "lastSale: " << lastSale << endl;
 
 
             // Remove commas and quotes from market cap and dollar sign from last sale using algorithm library > faster and efficient
-            marketCap.erase(remove(marketCap.begin(), marketCap.end(), ','), marketCap.end());
-            marketCap.erase(remove(marketCap.begin(), marketCap.end(), '"'), marketCap.end());
+            volume.erase(remove(volume.begin(), volume.end(), ','), volume.end());
+            volume.erase(remove(volume.begin(), volume.end(), '"'), volume.end());
         
             //checking code
-            //cout << symbol << " " << name << " " << marketCap << " " << lastSale << endl;
+            //cout << symbol << " " << name << " " << volume << " " << lastSale << endl;
 
-            stockList.push_back(Stock(symbol, name, stoll(marketCap), stod(lastSale)));
+            stockList.push_back(Stock(symbol, name, stoll(volume), stod(lastSale)));
         }
         inputFile.close();
 
@@ -116,7 +116,7 @@ public:
 
     void printStock() {
         for (int i = 0; i < stockList.size(); i++) {
-            cout << stockList[i].symbol << " " << stockList[i].name << " " << stockList[i].marketCap << " " << stockList[i].lastSale << endl;
+            cout << stockList[i].symbol << " " << stockList[i].name << " " << stockList[i].volume << " " << stockList[i].lastSale << endl;
         }
     }
     vector<Stock> returnStock(){
@@ -211,7 +211,7 @@ public:
 string displayPendingOrders() {
     stringstream output;
 
-    output << "\n Pending Buy Orders:" << endl;
+    output << "\nPending Buy Orders:" << endl;
     for (const auto& entry : pendingBuyOrders) {
         const OrderKey& key = entry.first;
         const vector<Order>& orders = entry.second;
@@ -232,6 +232,101 @@ string displayPendingOrders() {
     }
 
     return output.str();
+}
+
+int matchOrders() {
+    int totalMatchedQuantity = 0;
+
+    for (auto buyOrderIter = pendingBuyOrders.begin(); buyOrderIter != pendingBuyOrders.end(); ) {
+        OrderKey buyOrderKey = buyOrderIter->first;
+        vector<Order>& buyOrders = buyOrderIter->second;
+
+        if (pendingSellOrders.find(buyOrderKey) != pendingSellOrders.end()) {
+            vector<Order>& sellOrders = pendingSellOrders[buyOrderKey];
+
+            for (int i = 0; i < buyOrders.size(); i++) {
+                for (int j = 0; j < sellOrders.size(); j++) {
+                    Order& buyOrder = buyOrders[i];
+                    Order& sellOrder = sellOrders[j];
+
+                    if (buyOrder.price >= sellOrder.price) {
+                        // same buy quantity and sell quantity (buy price >= sell price)
+                        if (sellOrder.quantity >= buyOrder.quantity){
+                            cout << "fucntion called" << endl;
+                            // Calculate the matched quantity
+                            int matchedQuantity = min(buyOrder.quantity, sellOrder.quantity);
+
+                            buyOrder.quantity -= matchedQuantity;
+                            sellOrder.quantity -= matchedQuantity;
+                            // direct pop out after the order been statisfy 
+                            // Accumulate the matched quantity
+                            totalMatchedQuantity += matchedQuantity;
+                            // Update the stock price in maindata
+                            for (auto& stock : maindata) {
+                                if (stock.symbol == buyOrder.symbol) {
+                                    // Assuming lastSale is a double attribute in the Stock class
+                                    stock.lastSale = buyOrder.price;
+                                    stock.volume += matchedQuantity;
+                                }
+                            }
+
+                            // direct pop out after the order been statisfies
+                            if (buyOrder.quantity == 0) {
+                                buyOrders.erase(buyOrders.begin() + i);
+                            }
+
+                            if (sellOrder.quantity == 0) {
+                                sellOrders.erase(sellOrders.begin() + j);
+                            }
+
+                            // Since an order was matched, exit the inner loop
+                            break;
+                        }
+                        //case when buy quantity is more than sell quantity (buy price >= sell price)
+                        else if (buyOrder.quantity > sellOrder.quantity){
+                            int matchedQuantity= sellOrder.quantity;
+                            buyOrder.quantity -= matchedQuantity;
+                            totalMatchedQuantity += matchedQuantity;
+                            sellOrders.erase(sellOrders.begin() + j);
+                            break;
+                        }
+                        // Match the orders
+                        // Implement the logic to process matched orders
+                        // Access buyOrder and sellOrder to perform the trade
+                        // Update the quantities, execute the trade, etc.
+                    }
+                    //case with not matching anything just in the pending list
+                    else{
+                        break;
+                    }
+                }
+            }
+
+            // Remove empty buy or sell orders from the maps
+            if (buyOrders.empty()) {
+                buyOrderIter = pendingBuyOrders.erase(buyOrderIter);
+            } else {
+                ++buyOrderIter;
+            }
+
+            if (sellOrders.empty()) {
+                pendingSellOrders.erase(buyOrderKey);
+            }
+        } else {
+            ++buyOrderIter;
+        }
+    }
+
+    return totalMatchedQuantity;
+}
+
+bool checksymbol(string symbol){
+    for (int i=0;i<maindata.size();i++){
+        if (maindata[i].symbol==symbol){
+            return true;
+        }
+    }
+    return false;
 }
 
 private:    
@@ -279,7 +374,8 @@ private:
         char byeMessage[1024];
         sprintf(byeMessage, "bye %s", username);
         send(clientSocket, byeMessage, strlen(byeMessage), 0);
-    } else if (strcmp(action, "1") == 0) {
+    } 
+    if (strcmp(action, "1") == 0) {
     // Construct the stock data as a response
     string response;
     response += "\nSymbol :Company Name                               :Market Cap     :Last Price \n";
@@ -294,8 +390,8 @@ private:
         for (int i = 0; i < spaceCount2; i++) {
             response += " ";
         }
-        response+=":" + to_string(maindata[i].marketCap);
-        int spaceCount3 = 15 - to_string(maindata[i].marketCap).length();
+        response+=":" + to_string(maindata[i].volume);
+        int spaceCount3 = 15 - to_string(maindata[i].volume).length();
         for (int i = 0; i < spaceCount3; i++) {
             response += " ";
         }
@@ -324,17 +420,77 @@ private:
                     //price variable
                     const char* price = token;
                     // Process the buy stock action
-                    cout << "Received from client - Username: " << username << ", Action: " << action
-                         << ", Symbol: " << symbol << ", Quantity: " << quantity << ", Price: " << price << endl;
+                    cout << "Received from client - Username: " << username << ", Action: Sell" << ", Symbol: " << symbol << ", Quantity: " << quantity << ", Price: " << price << endl;
                     
-
+                    //check symbol is valid or not
+                    if (checksymbol(symbol)==false){
+                        const char* response = "ALERT: Symbol is not valid!";
+                        send(clientSocket, response, strlen(response), 0);
+                        closesocket(clientSocket);
+                        return;
+                    }
                     //matching logic and pending logic here
                     Order order = {username, symbol,stod(price),stoi(quantity)};
                     placeSellOrder(order);
 
                     // Handle the purchase logic and send a response
-                    const char* response = "Stock listed in pending list.";
-                    send(clientSocket, response, strlen(response), 0);
+                    if (matchOrders()== stoi(quantity)) {
+                        const char* response = "SELL: ALL Stock sold.";
+                        send(clientSocket, response, strlen(response), 0);
+                    } else if (matchOrders() >0){
+                        string response = "SELL: Stock partially sold.";
+                        response+= "Quantity sold: " + to_string(matchOrders());
+                        send(clientSocket, response.c_str(), response.length(), 0);
+                    } 
+                    else{
+                        const char* response = "SELL: Stock listed in pending list.";
+                        send(clientSocket, response, strlen(response), 0);
+                    }
+                }
+            }
+        }
+    } 
+    else if (strcmp(action, "3") == 0) {
+        token = strtok(nullptr, ":");
+        if (token != nullptr) {
+            //symbol variable
+            const char* symbol = token;
+            token = strtok(nullptr, ":");
+            if (token != nullptr) {
+                //quantity variable
+                const char* quantity = token;
+                token = strtok(nullptr, ":");
+                if (token != nullptr) {
+                    //price variable
+                    const char* price = token;
+                    // Process the buy stock action
+                    cout << "Received from client - Username: " << username << ", Action: Buy" << ", Symbol: " << symbol << ", Quantity: " << quantity << ", Price: " << price << endl;
+                    
+                    //check symbol is valid or not
+                    if (checksymbol(symbol)==false){
+                        const char* response = "ALERT: Symbol is not valid!";
+                        send(clientSocket, response, strlen(response), 0);
+                        closesocket(clientSocket);
+                        return;
+                    }
+                    
+                    //matching logic and pending logic here
+                    Order order = {username, symbol,stod(price),stoi(quantity)};
+                    placeBuyOrder(order);
+
+                    // Handle the purchase logic and send a response
+                    if (matchOrders()== stoi(quantity)) {
+                        const char* response = "Buy: ALL Stock purchase";
+                        send(clientSocket, response, strlen(response), 0);
+                    } else if (matchOrders() >0){
+                        string response = "Buy: Stock partially purchase.";
+                        response+= "Quantity purchase: " + to_string(matchOrders());
+                        send(clientSocket, response.c_str(), response.length(), 0);
+                    } 
+                    else{
+                        const char* response = "Buy: Stock listed in pending list.";
+                        send(clientSocket, response, strlen(response), 0);
+                    }
                 }
             }
         }

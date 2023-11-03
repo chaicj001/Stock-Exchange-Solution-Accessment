@@ -59,9 +59,27 @@ int main() {
         if (clientSocket == INVALID_SOCKET) {
             return 1;
         }
+        cout << "Menu Option" << endl;
+        cout << "1. View Stock" << endl;
+        cout << "2. Sell Stock" << endl;
+        cout << "3. Buy Stock" << endl;
+        cout << "4. View All Pending Stock" << endl;
+        cout << "5. View Holding " << endl;
         cout << "Enter your action:";
         cin >> action;
         message += action +":";
+        //quit function first 
+        if (action == "quit") {
+            send(clientSocket, message.c_str(), message.size(), 0);
+            //quit condition hear from server before quit 
+            listenserver(clientSocket);
+            closesocket(clientSocket);
+            WSACleanup();
+            break;
+        }
+
+
+       
         //switch case for action but it not possible to done in c++
         //hence, using traditional way with if statement to check the action and give respond to user
         if (action=="2"){
@@ -103,14 +121,6 @@ int main() {
             cout <<"Action:" << action << endl;
         }
 
-        if (action == "quit") {
-            cout << "quit function" << endl;
-            //quit condition hear from server before quit 
-            listenserver(clientSocket);
-            closesocket(clientSocket);
-            WSACleanup();
-            break;
-        }
         send(clientSocket, message.c_str(), message.size(), 0);
 
 
