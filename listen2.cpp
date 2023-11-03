@@ -35,7 +35,7 @@ struct OrderKey {
     int quantity;
 
     bool operator==(const OrderKey& other) const {
-        return symbol == other.symbol && price == other.price && quantity == other.quantity;
+        return symbol == other.symbol && price == other.price;
     }
 };
 
@@ -43,8 +43,8 @@ struct OrderKeyHash {
     std::size_t operator()(const OrderKey& key) const {
         size_t h1 = std::hash<string>{}(key.symbol);
         size_t h2 = std::hash<double>{}(key.price);
-        size_t h3 = std::hash<int>{}(key.quantity);
-        return h1 ^ (h2 << 1) ^ h3;
+        //size_t h3 = std::hash<int>{}(key.quantity);
+        return h1 ^ (h2 << 1);
     }
 };
 
@@ -92,7 +92,7 @@ public:
             //cout << symbol << " " << name << "volume: " << volume << "lastSale: " << lastSale << endl;
 
 
-            // Remove commas and quotes from market cap and dollar sign from last sale using algorithm library > faster and efficient
+            // Remove commas and quotes from volume and dollar sign from last sale using algorithm library > faster and efficient
             volume.erase(remove(volume.begin(), volume.end(), ','), volume.end());
             volume.erase(remove(volume.begin(), volume.end(), '"'), volume.end());
         
@@ -126,6 +126,8 @@ public:
 
 class StockServer {
 public:
+    unordered_map<OrderKey, vector<Order>, OrderKeyHash> pendingBuyOrders;
+    unordered_map<OrderKey, vector<Order>, OrderKeyHash> pendingSellOrders;
     WSADATA wsaData;
     StockServer(int port) : port(port) {
         stockData.loadcsv();
@@ -249,55 +251,64 @@ int matchOrders() {
                     Order& buyOrder = buyOrders[i];
                     Order& sellOrder = sellOrders[j];
 
-                    if (buyOrder.price >= sellOrder.price) {
-                        // same buy quantity and sell quantity (buy price >= sell price)
-                        if (sellOrder.quantity >= buyOrder.quantity){
-                            cout << "fucntion called" << endl;
-                            // Calculate the matched quantity
-                            int matchedQuantity = min(buyOrder.quantity, sellOrder.quantity);
-
-                            buyOrder.quantity -= matchedQuantity;
-                            sellOrder.quantity -= matchedQuantity;
-                            // direct pop out after the order been statisfy 
-                            // Accumulate the matched quantity
-                            totalMatchedQuantity += matchedQuantity;
-                            // Update the stock price in maindata
-                            for (auto& stock : maindata) {
-                                if (stock.symbol == buyOrder.symbol) {
-                                    // Assuming lastSale is a double attribute in the Stock class
-                                    stock.lastSale = buyOrder.price;
-                                    stock.volume += matchedQuantity;
-                                }
-                            }
-
-                            // direct pop out after the order been statisfies
-                            if (buyOrder.quantity == 0) {
-                                buyOrders.erase(buyOrders.begin() + i);
-                            }
-
-                            if (sellOrder.quantity == 0) {
-                                sellOrders.erase(sellOrders.begin() + j);
-                            }
-
-                            // Since an order was matched, exit the inner loop
-                            break;
-                        }
-                        //case when buy quantity is more than sell quantity (buy price >= sell price)
-                        else if (buyOrder.quantity > sellOrder.quantity){
-                            int matchedQuantity= sellOrder.quantity;
-                            buyOrder.quantity -= matchedQuantity;
-                            totalMatchedQuantity += matchedQuantity;
-                            sellOrders.erase(sellOrders.begin() + j);
-                            break;
-                        }
-                        // Match the orders
+                    if (buyOrder.price >= sellOrder.price && buyOrder.symbol == sellOrder.symbol) {
+                        // Match the orders based on symbol and price
                         // Implement the logic to process matched orders
                         // Access buyOrder and sellOrder to perform the trade
                         // Update the quantities, execute the trade, etc.
-                    }
-                    //case with not matching anything just in the pending list
-                    else{
-                        break;
+
+                        // Calculate the matched quantity
+                        int matchedQuantity = min(buyOrder.quantity, sellOrder.quantity);
+
+                        buyOrder.quantity -= matchedQuantity;
+                        sellOrder.quantity -= matchedQuantity;
+
+                        // Accumulate the matched quantity
+                        totalMatchedQuantity += matchedQuantity;
+
+                        // Update the stock price in maindata
+                        for (auto& stock : maindata) {
+                            if (stock.symbol == buyOrder.symbol) {
+                                // Assuming lastSale is a double attribute in the Stock class
+                                stock.lastSale = buyOrder.price;
+                                stock.volume += matchedQuantity;
+                            }
+                        }
+
+
+                        // Remove matched buy or sell orders
+                        if (buyOrder.quantity == 0) {
+                            buyOrders.erase(buyOrders.begin() + i);
+                        }else{
+                            //pending list erase the original one 
+                            pendingBuyOrders.erase(buyOrderIter);
+                            string username =buyOrder.username;
+                            string symbol = buyOrder.symbol;
+                            double price = buyOrder.price;
+                            int quantity = buyOrder.quantity - sellOrder.quantity;
+                            Order neworder = {username, symbol,price,quantity};
+                            // put back the update one to pending list
+                            placeBuyOrder(neworder);
+                            cout << neworder.username << " " << neworder.symbol << " " << neworder.price << " " << neworder.quantity << endl;
+                            //dont let it run the next if loop else it will put the sell order into pending list sell again
+                            sellOrders.erase(sellOrders.begin() + j);
+                            break;
+                        }
+
+                        if (sellOrder.quantity == 0) {
+                            sellOrders.erase(sellOrders.begin() + j);
+                        }else{
+                            pendingSellOrders.erase(buyOrderKey);
+                            string username =sellOrder.username;
+                            string symbol = sellOrder.symbol;
+                            double price = sellOrder.price;
+                            int quantity = sellOrder.quantity - buyOrder.quantity;
+                            Order neworder = {username, symbol,price,quantity};
+                            placeSellOrder(neworder);
+                            cout << neworder.username << " " << neworder.symbol << " " << neworder.price << " " << neworder.quantity << endl;   
+                            break;
+                        }
+
                     }
                 }
             }
@@ -320,6 +331,8 @@ int matchOrders() {
     return totalMatchedQuantity;
 }
 
+
+
 bool checksymbol(string symbol){
     for (int i=0;i<maindata.size();i++){
         if (maindata[i].symbol==symbol){
@@ -330,8 +343,6 @@ bool checksymbol(string symbol){
 }
 
 private:    
-    unordered_map<OrderKey, vector<Order>, OrderKeyHash> pendingBuyOrders;
-    unordered_map<OrderKey, vector<Order>, OrderKeyHash> pendingSellOrders;
 
     int port;
     SOCKET serverSocket;
@@ -378,7 +389,7 @@ private:
     if (strcmp(action, "1") == 0) {
     // Construct the stock data as a response
     string response;
-    response += "\nSymbol :Company Name                               :Market Cap     :Last Price \n";
+    response += "\nSymbol :Company Name                               :Volume        :Last Price \n";
     for (int i = 0; i < maindata.size(); i++) {
         response += maindata[i].symbol;
         int spaceCount = 7 - maindata[i].symbol.length();
