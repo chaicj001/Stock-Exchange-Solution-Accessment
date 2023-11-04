@@ -251,7 +251,7 @@ int matchOrders() {
                     Order& buyOrder = buyOrders[i];
                     Order& sellOrder = sellOrders[j];
 
-                    if (buyOrder.symbol == sellOrder.symbol && buyOrder.price >= sellOrder.price ) {
+                    if (buyOrder.price >= sellOrder.price && buyOrder.symbol == sellOrder.symbol) {
                         // Match the orders based on symbol and price
                         // Implement the logic to process matched orders
                         // Access buyOrder and sellOrder to perform the trade
@@ -280,14 +280,18 @@ int matchOrders() {
                         if (buyOrder.quantity == 0) {
                             buyOrders.erase(buyOrders.begin() + i);
                         }else{
+                            //pending list erase the original one 
                             pendingBuyOrders.erase(buyOrderIter);
                             string username =buyOrder.username;
                             string symbol = buyOrder.symbol;
                             double price = buyOrder.price;
                             int quantity = buyOrder.quantity - sellOrder.quantity;
                             Order neworder = {username, symbol,price,quantity};
-                            placeBuyOrder(neworder);                           
-                            cout <<"Buy:" <<neworder.username << " " << neworder.symbol << " " << neworder.price << " " << neworder.quantity << endl;   
+                            // put back the update one to pending list
+                            placeBuyOrder(neworder);
+                            cout << neworder.username << " " << neworder.symbol << " " << neworder.price << " " << neworder.quantity << endl;
+                            //dont let it run the next if loop else it will put the sell order into pending list sell again
+                            sellOrders.erase(sellOrders.begin() + j);
                             break;
                         }
 
@@ -301,7 +305,7 @@ int matchOrders() {
                             int quantity = sellOrder.quantity - buyOrder.quantity;
                             Order neworder = {username, symbol,price,quantity};
                             placeSellOrder(neworder);
-                            cout << "Sell:"<< neworder.username << " " << neworder.symbol << " " << neworder.price << " " << neworder.quantity << endl;   
+                            cout << neworder.username << " " << neworder.symbol << " " << neworder.price << " " << neworder.quantity << endl;   
                             break;
                         }
 

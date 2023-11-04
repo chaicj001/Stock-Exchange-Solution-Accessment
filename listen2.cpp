@@ -33,23 +33,38 @@ struct OrderKey {
     string symbol;
     double price;
     int quantity;
-
+    int orderid;
+    //what is determine as same orderkey price and symbol only
     bool operator==(const OrderKey& other) const {
         return symbol == other.symbol && price == other.price;
     }
+    bool equal(const OrderKey& other) const {
+        return symbol == other.symbol && price == other.price && quantity == other.quantity && orderid == other.orderid;
+    }
 };
+
+/*struct OrderKeyHash {
+    std::size_t operator()(const OrderKey& key) const {
+        size_t h1 = std::hash<string>{}(key.symbol);
+        size_t h2 = std::hash<double>{}(key.price);
+        // this code make the hash function more unique to prevent overflow in later
+        //size_t h3 = std::hash<size_t>{}(reinterpret_cast<size_t>(&key));  
+        return h1 ^ (h2 << 1);
+    }
+};*/
 
 struct OrderKeyHash {
     std::size_t operator()(const OrderKey& key) const {
         size_t h1 = std::hash<string>{}(key.symbol);
         size_t h2 = std::hash<double>{}(key.price);
-        //size_t h3 = std::hash<int>{}(key.quantity);
-        return h1 ^ (h2 << 1);
+        size_t h3 = std::hash<int>{}(key.orderid);
+        return h1 ^ (h2 << 1) ^ (h3 << 2);
     }
 };
 
 //from option 2 and 3 from this struct after taking input from user
 struct Order {
+    int orderid;
     string username;
     string symbol;
     double price;
@@ -202,14 +217,15 @@ public:
     }
 
     void placeBuyOrder(const Order& order) {
-        OrderKey key = {order.symbol, order.price, order.quantity};
+        OrderKey key = {order.symbol, order.price, order.quantity, order.orderid};
         pendingBuyOrders[key].push_back(order);
     }
 
     void placeSellOrder(const Order& order) {
-        OrderKey key = {order.symbol, order.price, order.quantity};
+        OrderKey key = {order.symbol, order.price, order.quantity, order.orderid};
         pendingSellOrders[key].push_back(order);
     }
+
 string displayPendingOrders() {
     stringstream output;
 
@@ -219,7 +235,8 @@ string displayPendingOrders() {
         const vector<Order>& orders = entry.second;
 
         for (const Order& order : orders) {
-            output <<"Username: " << order.username << ", Symbol: " << key.symbol << ", Price: " << key.price << ", Quantity: " << key.quantity << endl;
+            output <<"OrderId: " << order.orderid
+            << ", Username: " << order.username << ", Symbol: " << key.symbol << ", Price: " << key.price << ", Quantity: " << key.quantity << endl;
         }
     }
 
@@ -229,103 +246,88 @@ string displayPendingOrders() {
         const vector<Order>& orders = entry.second;
 
         for (const Order& order : orders) {
-            output <<"Username: " << order.username << ", Symbol: " << key.symbol << ", Price: " << key.price << ", Quantity: " << key.quantity << endl;
+            output <<"OrderId: " << order.orderid
+            <<", Username: " << order.username << ", Symbol: " << key.symbol << ", Price: " << key.price << ", Quantity: " << key.quantity << endl;
         }
     }
 
     return output.str();
 }
-
-int matchOrders() {
+//buy match sell order
+int matchSellOrders(const Order& order) {
     int totalMatchedQuantity = 0;
 
-    for (auto buyOrderIter = pendingBuyOrders.begin(); buyOrderIter != pendingBuyOrders.end(); ) {
-        OrderKey buyOrderKey = buyOrderIter->first;
-        vector<Order>& buyOrders = buyOrderIter->second;
+    // Create a modified key with the same symbol and price
+    OrderKey modifiedBuyOrderKey = { order.symbol, order.price };
 
-        if (pendingSellOrders.find(buyOrderKey) != pendingSellOrders.end()) {
-            vector<Order>& sellOrders = pendingSellOrders[buyOrderKey];
+    if (pendingSellOrders.find(modifiedBuyOrderKey) != pendingSellOrders.end()) {
+        // Important code that goes into the pendingSellOrders to find the same price and symbol
+        vector<Order>& sellOrders = pendingSellOrders[modifiedBuyOrderKey];
+        for (int j = 0; j < sellOrders.size(); j++) {
+            Order& sellOrder = sellOrders[j];
 
-            for (int i = 0; i < buyOrders.size(); i++) {
-                for (int j = 0; j < sellOrders.size(); j++) {
-                    Order& buyOrder = buyOrders[i];
-                    Order& sellOrder = sellOrders[j];
+            if (order.price >= sellOrder.price && order.symbol == sellOrder.symbol) {
+                // Match the orders based on symbol and price
+                // Implement the logic to process matched orders
+                // Access order and sellOrder to perform the trade
+                // Update the quantities, execute the trade, etc.
 
-                    if (buyOrder.price >= sellOrder.price && buyOrder.symbol == sellOrder.symbol) {
-                        // Match the orders based on symbol and price
-                        // Implement the logic to process matched orders
-                        // Access buyOrder and sellOrder to perform the trade
-                        // Update the quantities, execute the trade, etc.
+                // Calculate the matched quantity
+                int matchedQuantity = min(order.quantity, sellOrder.quantity);
 
-                        // Calculate the matched quantity
-                        int matchedQuantity = min(buyOrder.quantity, sellOrder.quantity);
+                int  orderquantityleft = order.quantity - matchedQuantity;
+                int sellquantityleft= sellOrder.quantity -= matchedQuantity;
 
-                        buyOrder.quantity -= matchedQuantity;
-                        sellOrder.quantity -= matchedQuantity;
+                // Accumulate the matched quantity
+                totalMatchedQuantity += matchedQuantity;
 
-                        // Accumulate the matched quantity
-                        totalMatchedQuantity += matchedQuantity;
-
-                        // Update the stock price in maindata
-                        for (auto& stock : maindata) {
-                            if (stock.symbol == buyOrder.symbol) {
-                                // Assuming lastSale is a double attribute in the Stock class
-                                stock.lastSale = buyOrder.price;
-                                stock.volume += matchedQuantity;
-                            }
-                        }
-
-
-                        // Remove matched buy or sell orders
-                        if (buyOrder.quantity == 0) {
-                            buyOrders.erase(buyOrders.begin() + i);
-                        }else{
-                            //pending list erase the original one 
-                            pendingBuyOrders.erase(buyOrderIter);
-                            string username =buyOrder.username;
-                            string symbol = buyOrder.symbol;
-                            double price = buyOrder.price;
-                            int quantity = buyOrder.quantity - sellOrder.quantity;
-                            Order neworder = {username, symbol,price,quantity};
-                            // put back the update one to pending list
-                            placeBuyOrder(neworder);
-                            cout << neworder.username << " " << neworder.symbol << " " << neworder.price << " " << neworder.quantity << endl;
-                            //dont let it run the next if loop else it will put the sell order into pending list sell again
-                            sellOrders.erase(sellOrders.begin() + j);
-                            break;
-                        }
-
-                        if (sellOrder.quantity == 0) {
-                            sellOrders.erase(sellOrders.begin() + j);
-                        }else{
-                            pendingSellOrders.erase(buyOrderKey);
-                            string username =sellOrder.username;
-                            string symbol = sellOrder.symbol;
-                            double price = sellOrder.price;
-                            int quantity = sellOrder.quantity - buyOrder.quantity;
-                            Order neworder = {username, symbol,price,quantity};
-                            placeSellOrder(neworder);
-                            cout << neworder.username << " " << neworder.symbol << " " << neworder.price << " " << neworder.quantity << endl;   
-                            break;
-                        }
-
+                // Update the stock price in maindata
+                for (auto& stock : maindata) {
+                    if (stock.symbol == order.symbol) {
+                        // Assuming lastSale is a double attribute in the Stock class
+                        stock.lastSale = order.price;
+                        stock.volume += matchedQuantity;
                     }
                 }
-            }
 
-            // Remove empty buy or sell orders from the maps
-            if (buyOrders.empty()) {
-                buyOrderIter = pendingBuyOrders.erase(buyOrderIter);
-            } else {
-                ++buyOrderIter;
+                // Remove matched buy or sell orders, this will only trigger one 
+                    if (orderquantityleft > 0) {                        
+                        int oldorderid = order.orderid;
+                        string username = order.username;
+                        string symbol = order.symbol;
+                        double price = order.price;
+                        Order neworder = { oldorderid, username, symbol, price, orderquantityleft };
+                        placeBuyOrder(neworder);
+                        cout << "in buy else:" << neworder.username << " " << neworder.symbol << " " << neworder.price << " " << neworder.quantity << endl;
+                        break; 
+                        } 
+                    else if (sellquantityleft> 0) {
+                        pendingSellOrders.erase(pendingSellOrders.find( { sellOrder.symbol, sellOrder.price, sellOrder.orderid}));
+                        int oldorderid = sellOrder.orderid;
+                        string username = sellOrder.username;
+                        string symbol = sellOrder.symbol;
+                        double price = sellOrder.price;
+                        Order neworder = { oldorderid, username, symbol, price, sellquantityleft };
+                        sellOrder.quantity = 0; // The sell order is fully matched, set quantity to 0
+                        placeSellOrder(neworder);
+                        cout << "in sell else:" << " " << neworder.username << " " << neworder.symbol << " " << neworder.price << " " << neworder.quantity << endl;
+                        break;
+                        } 
             }
-
-            if (sellOrders.empty()) {
-                pendingSellOrders.erase(buyOrderKey);
-            }
-        } else {
-            ++buyOrderIter;
         }
+
+       /*If the order is still not fully matched, add it back to the pendingSellOrders
+        if (order.quantity > 0) {
+            placeSellOrder(order);
+        }*/
+
+        // Remove the modifiedBuyOrderKey from pendingSellOrders if it's empty
+        if (sellOrders.empty()) {
+            pendingSellOrders.erase(modifiedBuyOrderKey);
+        }
+    }
+    else{
+        placeSellOrder(order);
     }
 
     return totalMatchedQuantity;
@@ -346,6 +348,7 @@ private:
 
     int port;
     SOCKET serverSocket;
+    int nextOrderId = 0;
 
     //initial start to read stock data from csv 
     ReadStock stockData;
@@ -441,16 +444,18 @@ private:
                         return;
                     }
                     //matching logic and pending logic here
-                    Order order = {username, symbol,stod(price),stoi(quantity)};
-                    placeSellOrder(order);
+                    int orderid= nextOrderId++;
+                    Order order = {orderid,username, symbol,stod(price),stoi(quantity)};
+                    //placeSellOrder(order);
 
                     // Handle the purchase logic and send a response
-                    if (matchOrders()== stoi(quantity)) {
+                    int  matchreturn= matchSellOrders(order);
+                    if (matchreturn== stoi(quantity)) {
                         const char* response = "SELL: ALL Stock sold.";
                         send(clientSocket, response, strlen(response), 0);
-                    } else if (matchOrders() >0){
+                    } else if (matchreturn >0){
                         string response = "SELL: Stock partially sold.";
-                        response+= "Quantity sold: " + to_string(matchOrders());
+                        response+= "Quantity sold: " + to_string(matchreturn);
                         send(clientSocket, response.c_str(), response.length(), 0);
                     } 
                     else{
@@ -486,16 +491,18 @@ private:
                     }
                     
                     //matching logic and pending logic here
-                    Order order = {username, symbol,stod(price),stoi(quantity)};
-                    placeBuyOrder(order);
+                    int orderid= nextOrderId++;
+                    Order order = {orderid,username,symbol,stod(price),stoi(quantity)};
+                    //placeBuyOrder(order);
 
                     // Handle the purchase logic and send a response
-                    if (matchOrders()== stoi(quantity)) {
+                    int  matchreturn= matchSellOrders(order);
+                    if (matchreturn== stoi(quantity)) {
                         const char* response = "Buy: ALL Stock purchase";
                         send(clientSocket, response, strlen(response), 0);
-                    } else if (matchOrders() >0){
+                    } else if (matchreturn >0){
                         string response = "Buy: Stock partially purchase.";
-                        response+= "Quantity purchase: " + to_string(matchOrders());
+                        response+= "Quantity purchase: " + to_string(matchreturn);
                         send(clientSocket, response.c_str(), response.length(), 0);
                     } 
                     else{

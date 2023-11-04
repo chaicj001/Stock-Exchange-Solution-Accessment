@@ -47,7 +47,7 @@ int main() {
      
     int quantity=10;
     double price=170;
-    for (int i=0;10>i;i++){
+    for (int i=0;5>i;i++){
         SOCKET clientSocket = connectToServer();
         if (clientSocket == INVALID_SOCKET) {
         return 1;
