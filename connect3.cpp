@@ -1,8 +1,25 @@
 #include <iostream>
 #include <windows.h>
+#include <thread>
+#include <vector>
+#include <fstream>
 #include <string>
+#include <sstream>
+#include <algorithm>
+#include <unordered_map>
+
 
 using namespace std;
+
+struct Order {
+    int orderid;
+    string symbol;
+    string action;
+    double price;
+    int quantity;
+};
+
+vector <Order> holding;
 SOCKET clientSocket = socket(AF_INET, SOCK_STREAM, 0);
 
 void listenserver(SOCKET clientSocket) {
@@ -11,8 +28,43 @@ void listenserver(SOCKET clientSocket) {
     if (bytesRead > 0) {
         buffer[bytesRead] = '\0';
         cout << "Received from server: " << buffer << endl;
+
+        istringstream iss(buffer);
+        string firstToken;
+        string secondToken;
+        getline(iss, firstToken, ':'); // Read the first part of the reply
+        getline(iss, secondToken, '|');
+
+        if (firstToken == "SELL" || firstToken == "BUY") {
+            // The reply follows the expected format
+            string token;
+            Order order;
+
+            // Parse the order information
+            
+            getline(iss, token, '|'); // Read orderid 
+            //cout <<"token" << token << endl;
+            order.orderid = stoi(token);
+            
+
+            getline(iss, token, '|'); // Read symbol
+            order.symbol = token;
+
+            getline(iss, token, '|'); // Read price
+            order.price = stod(token);
+
+            getline(iss, token, '|'); // Read quantity
+            order.quantity = stoi(token);
+            order.action = firstToken;
+
+            // Push the order into the vector of orders
+            holding.push_back(order);
+
+        }
+        cout << "Received from server: " << firstToken <<" " << secondToken << endl;
     }
 }
+
 SOCKET connectToServer() {
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
@@ -116,6 +168,10 @@ int main() {
         }
         else if (action=="5"){
             cout << "Your Holdings"<< endl;
+            for (Order& order : holding) {
+        cout << "Order ID: " << order.orderid <<", "<< order.action << ", Symbol: " << order.symbol
+             << ", Price: " << order.price << ", Quantity: " << order.quantity << endl;
+        }
         }        
         else{
             cout <<"Action:" << action << endl;

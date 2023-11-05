@@ -1,8 +1,24 @@
 #include <iostream>
 #include <windows.h>
+#include <thread>
+#include <vector>
+#include <fstream>
 #include <string>
+#include <sstream>
+#include <algorithm>
+#include <unordered_map>
+
 
 using namespace std;
+
+struct Order {
+    int orderid;
+    string symbol;
+    double price;
+    int quantity;
+};
+
+vector <Order> holdings;
 SOCKET clientSocket = socket(AF_INET, SOCK_STREAM, 0);
 
 void listenserver(SOCKET clientSocket) {
@@ -12,6 +28,7 @@ void listenserver(SOCKET clientSocket) {
         buffer[bytesRead] = '\0';
         cout << "Received from server: " << buffer << endl;
     }
+    
 }
 SOCKET connectToServer() {
     WSADATA wsaData;
