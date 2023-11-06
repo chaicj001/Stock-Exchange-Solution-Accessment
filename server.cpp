@@ -27,29 +27,6 @@ public:
     }
 };
 
-//give up for using stock class since order do not need user to key in entire stock name
-//for order matching later later
-struct OrderKey {
-    string symbol;
-    double price;
-    int quantity;
-    int orderid;
-    //what is determine as same orderkey price and symbol only
-    bool operator==(const OrderKey& other) const {
-        return symbol == other.symbol && price == other.price;
-    }
-};
-
-
-struct OrderKeyHash {
-    std::size_t operator()(const OrderKey& key) const {
-        size_t h1 = std::hash<string>{}(key.symbol);
-        size_t h2 = std::hash<double>{}(key.price);
-        size_t h3 = std::hash<int>{}(key.orderid);
-        return h1 ^ (h2 << 1) ^ (h3 << 2);
-    }
-};
-
 //from option 2 and 3 from this struct after taking input from user
 struct Order {
     int orderid;
@@ -204,17 +181,7 @@ public:
         WSACleanup();
     }
 
-void placeBuyOrder(const Order& order) {
-    pendingBuyOrders.push_back(order);
-}
 
-void placeSellOrder(const Order& order) {
-    pendingSellOrders.push_back(order);
-}
-
-bool orderByOrderIdAscending(const Order& a, const Order& b) {
-    return a.orderid < b.orderid;
-}
 
 string displayPendingOrders() {
     stringstream output;
@@ -288,17 +255,16 @@ int matchSellOrders(Order& order) {
                 else if (orderquantityleft > 0 && sellquantityleft == 0) {
                     it->quantity = it->quantity - matchedQuantity;
                     order.quantity= order.quantity - matchedQuantity;
-                    pendingBuyOrders.push_back(order);
-                    return totalMatchedQuantity;
                 } else if (sellquantityleft > 0 && orderquantityleft == 0) {
                     it->quantity = it->quantity - matchedQuantity;
                     order.quantity= order.quantity - matchedQuantity;
-                    return totalMatchedQuantity;
                 }
             }
     ++it;
     }
-    pendingBuyOrders.push_back(order);
+    if (order.quantity > 0) {
+        pendingBuyOrders.push_back(order);
+    }
     return totalMatchedQuantity;
 }
 
@@ -336,17 +302,16 @@ int matchBuyOrders(Order& order) {
                 }else if (orderquantityleft > 0 && buyquantityleft == 0) {
                     it->quantity = it->quantity - matchedQuantity;
                     order.quantity= order.quantity - matchedQuantity;
-                    pendingSellOrders.push_back(order);
-                    return totalMatchedQuantity;
                 } else if (buyquantityleft > 0 && orderquantityleft == 0) {
                     it->quantity = it->quantity - matchedQuantity;
                     order.quantity= order.quantity - matchedQuantity;
-                    return totalMatchedQuantity;
                 } 
             }
       ++it;       
 }   
-    pendingSellOrders.push_back(order);
+    if (order.quantity > 0) {
+        pendingSellOrders.push_back(order);
+    }
     return totalMatchedQuantity;
 }
 
@@ -464,7 +429,6 @@ private:
                     int orderid= nextOrderId++;
                     Order order = {orderid,username, symbol,stod(price),stoi(quantity)};
                     string resquantitiy= quantity;
-                    //placeSellOrder(order);
 
                     // Handle the purchase logic and send a response
                     int  matchreturn= matchBuyOrders(order);

@@ -27,20 +27,18 @@ void listenserver(SOCKET clientSocket) {
     int bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
     if (bytesRead > 0) {
         buffer[bytesRead] = '\0';
-
         istringstream iss(buffer);
         string firstToken;
         string secondToken;
         getline(iss, firstToken, ':'); // Read the first part of the reply
-        
+        getline(iss, secondToken, '|');
 
-        if (firstToken == "SELL" || firstToken == "BUY") {
+        if (firstToken == "SELL" && secondToken!=" Stock listed in pending list."|| firstToken == "BUY" && secondToken!=" Stock listed in pending list.") {
             // The reply follows the expected format
             string token;
             Order order;
 
             // Parse the order information
-            getline(iss, secondToken, '|');
             getline(iss, token, '|'); // Read orderid 
             order.orderid = stoi(token);
             
@@ -62,6 +60,7 @@ void listenserver(SOCKET clientSocket) {
         else{
             getline(iss, secondToken, '|');
         }
+
         cout << "Received from server: " << firstToken <<" " << secondToken << endl;
     }
 }
