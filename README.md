@@ -7,6 +7,7 @@
 
 ## Objective:
 
+Creating a stock exchange program. \n
 Implement a stock exchange matching engine for high-speed trading.
 
 **Features to Implement:**
