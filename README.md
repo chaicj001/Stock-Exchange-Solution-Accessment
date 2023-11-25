@@ -9,7 +9,7 @@
 
 Implement a stock exchange matching engine for high-speed trading.
 
-* Features to Implement:
+**Features to Implement:**
 
 1. Accept buy and sell orders.
 2. Orders include: ID, Type (Buy/Sell), Price, Quantity.
