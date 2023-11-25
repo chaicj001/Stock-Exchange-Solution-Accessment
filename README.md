@@ -16,6 +16,8 @@ Creating a stock exchange program with matching engine for high-speed trading an
 3. Orders include: ID, Type (Buy/Sell), Price, Quantity.
 4. Match orders efficiently based on price and time (first come first serve, order that been placed first will been solve during the matching).
 5. Support partial fills (order that not been filled will been put into the pending list for waiting new buyer/seller).
+6. Updated lasted price and volume in the specific stock (trade stock) will be update to the all user viewing list.
+7. User can see their holding stock after purchase or sell in their program.
 
 ## Communication Logic:
 
