@@ -1,6 +1,8 @@
 # Stock Exchange Stimulator
 **Repository includes a C++ implementation of a high-speed trading matching engine meeting specified requirements.**
+
 **Clear documentation, efficient code, and thorough testing ensure reliability.**
+
 **Utilizes TCP/IP for order communication.**
 
 ## Objective:
