@@ -1,9 +1,9 @@
 # Stock Exchange Stimulator
-## Repository includes a C++ implementation of a high-speed trading matching engine meeting specified requirements.
-## Clear documentation, efficient code, and thorough testing ensure reliability.
-## Utilizes TCP/IP for order communication.
+** Repository includes a C++ implementation of a high-speed trading matching engine meeting specified requirements. **
+** Clear documentation, efficient code, and thorough testing ensure reliability. **
+** Utilizes TCP/IP for order communication. **
 
-Objective:
+## Objective:
 
 Implement a stock exchange matching engine for high-speed trading.
 
@@ -14,13 +14,13 @@ Features to Implement:
 3. Match orders efficiently based on price and time.
 4. Support partial fills.
 
-Communication Logic:
+## Communication Logic:
 
 Use TCP/IP (windows socket function)for user order input and trade output.
 Efficiency:
 
 Optimize for speed to handle a large volume of orders. (can be accept trade without any hustle)
-Deliverables:
+## Deliverables:
 
 Source code for the matching engine.
 User manual with compile/run instructions and TCP/IP specifications.
