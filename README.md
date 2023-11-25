@@ -7,19 +7,19 @@
 
 ## Objective:
 
-Creating a stock exchange program. \n
-Implement a stock exchange matching engine for high-speed trading.
+Creating a stock exchange program with matching engine for high-speed trading and large frequent trade.
 
 **Features to Implement:**
 
-1. Accept buy and sell orders.
-2. Orders include: ID, Type (Buy/Sell), Price, Quantity.
-3. Match orders efficiently based on price and time.
-4. Support partial fills.
+1. Reading stock from the csv file with latest data. 
+2. Accept buy and sell orders from the user.
+3. Orders include: ID, Type (Buy/Sell), Price, Quantity.
+4. Match orders efficiently based on price and time (first come first serve, order that been placed first will been solve during the matching).
+5. Support partial fills (order that not been filled will been put into the pending list for waiting new buyer/seller).
 
 ## Communication Logic:
 
-Use TCP/IP (windows socket function)for user order input and trade output.
+Use TCP/IP (windows inbuild socket function)for user order input and trade output.
 ## Efficiency:
 
 Optimize for speed to handle a large volume of orders. (can be accept trade without any hustle)
